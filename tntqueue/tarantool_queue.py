@@ -39,26 +39,34 @@ class Task(object):
         self.raw_data = raw_data
         self.space = space
         self.queue = queue
+        self.modified = False
 
     def ack(self):
+        self.modified = True
         return self.queue.ack(self.task_id)
 
     def release(self, **kwargs):
+        self.modified = True
         return self.queue.release(self.task_id, **kwargs)
 
     def delete(self):
+        self.modified = True
         return self.queue.delete(self.task_id)
 
     def requeue(self):
+        self.modified = True
         return self.queue.requeue(self.task_id)
 
     def done(self):
+        self.modified = True
         return self.queue.done(self.task_id)
 
     def bury(self):
+        self.modified = True
         return self.queue.bury(self.task_id)
 
     def dig(self):
+        self.modified = True
         return self.queue.dig(self.task_id)
 
     def meta(self):
@@ -79,6 +87,10 @@ class Task(object):
             self.task_id, self.tube, self.status, self.space
         )
         return "Task (id: {0}, tube:{1}, status: {2}, space:{3})".format(*args)
+
+    def __del__(self):
+        if self.status == 'taken' and not self.modified:
+            self.release()
 
     data = property(_data)
 
@@ -139,6 +151,26 @@ class Queue(object):
     Tarantool queue wrapper. Surely pinned to space. May create tubes.
     By default it uses msgpack for serialization, but you may redefine
     serialize and deserialize methods.
+    You must use Queue only for creating Tubes.
+    Usage:
+        >>> from tntqueue import Queue
+        >>> queue = tntqueue.Queue()
+        >>> tube1 = queue.create_tube('holy_grail', ttl=100, delay=5)
+        >>> tube1.put([1, 2, 3])    # Put task into the queue
+        >>> tube1.urgent([2, 3, 4]) # Put task into the beggining of queue (Highest priority).
+        >>> tube1.get() # We get task and automaticaly release it
+        >>> task1 = tube1.take()
+        >>> task2 = tube1.take()
+        >>> print(task1.data)
+            [2, 3, 4]
+        >>> print(task2.data)
+            [1, 2, 3]
+        >>> del task2
+        >>> del task1
+        >>> print(tube1.take().data)
+            [1, 2, 3]
+        >>> tube1.take().ack() # take task, make what it needs and 
+            True
     """
 
     DataBaseError = DatabaseError
@@ -343,7 +375,7 @@ class Queue(object):
 
     def statistics(self, overall = False, tube = None):
         """
-        Return queue modulэe statistics accumulated since server start.
+        Return queue module statistics accumulated since server start.
         """
         args = tuple() if overall else (str(self.space),)
         args = args if overall or not tube else args + (tube,)
@@ -353,6 +385,9 @@ class Queue(object):
         return dict()
     
     def touch(self, task_id):
+        """
+        Prolong living time for taken task with this id.
+        """
         args = (str(self.space), task_id)
         the_tuple = self.tnt.call("queue.touch", tuble(args))
         return the_tuple.return_code == 0
