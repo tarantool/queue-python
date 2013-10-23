@@ -2,15 +2,6 @@
 
 # client for tarantool's queue
 # https://github.com/tarantool/queue
-# usage:
-# queue = Queue()
-# tube = queue.create_tube("tasks1", ttl=60, delay=5)
-# tube.put()
-# task = tube.put()
-# task = tube.put()
-# task = tube.take()
-# task = tube.take()
-# task = tube.take()
 
 import tarantool
 from tarantool.error import DatabaseError, NetworkError
@@ -143,7 +134,7 @@ class Tube(object):
     def kick(self, count=None):
         return self.queue.kick(self.opt['tube'], count)
 
-    def statisticts(self):
+    def statistics(self):
         return self.queue.statistics(tube=self.opt['tube'])
 
 class Queue(object):
@@ -152,6 +143,7 @@ class Queue(object):
     By default it uses msgpack for serialization, but you may redefine
     serialize and deserialize methods.
     You must use Queue only for creating Tubes.
+    For more usage, please, look into tests.
     Usage:
         >>> from tntqueue import Queue
         >>> queue = tntqueue.Queue()
@@ -376,6 +368,7 @@ class Queue(object):
     def statistics(self, overall = False, tube = None):
         """
         Return queue module statistics accumulated since server start.
+        TODO: write better parser for stats (format `space.tube.op : count`.)
         """
         args = tuple() if overall else (str(self.space),)
         args = args if overall or not tube else args + (tube,)
