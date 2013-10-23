@@ -1,2 +1,4 @@
+VERSION = "0.0.1"
+
 from tarantool_queue import *
-all = [Task, Tube, Queue]
+__all__ = [Task, Tube, Queue]

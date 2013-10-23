@@ -3,16 +3,17 @@
 # client for tarantool's queue
 # https://github.com/tarantool/queue
 
+import struct
+import msgpack
+from threading import Lock
+
 import tarantool
 from tarantool.error import DatabaseError, NetworkError
-from threading import Lock
-import struct
-
-import msgpack
 
 
 def unpack_long_long(value):
     return struct.unpack("<q", value)[0]
+
 
 def unpack_long(value):
     return struct.unpack("<l", value)[0]
@@ -20,10 +21,11 @@ def unpack_long(value):
 
 class Task(object):
     """
-    Tarantool queue task wrapper. 
+    Tarantool queue task wrapper.
     """
 
-    def __init__(self, queue, space=0, task_id=0, tube="", status="", raw_data=None):
+    def __init__(self, queue, space=0, task_id=0,
+                 tube="", status="", raw_data=None):
         self.task_id = task_id
         self.tube = tube
         self.status = status
@@ -66,7 +68,8 @@ class Task(object):
     def touch(self):
         return self.queue.touch(self.task_id)
 
-    def _data(self):
+    @property
+    def data(self):
         if not self.raw_data:
             return None
         if not hasattr(self, '_decoded_data'):
@@ -82,8 +85,6 @@ class Task(object):
     def __del__(self):
         if self.status == 'taken' and not self.modified:
             self.release()
-
-    data = property(_data)
 
     @classmethod
     def from_tuple(cls, queue, the_tuple):
@@ -122,20 +123,21 @@ class Tube(object):
     def update_options(self, **kwargs):
         self.opt.update(kwargs)
 
-    def put(self, data=None, urgent=False, **kwargs):
-        return self.queue.put(data, True, **dict(self.opt, **kwargs))
-    
+    def put(self, data=None, **kwargs):
+        return self.queue.put(data, False, **dict(self.opt, **kwargs))
+
     def urgent(self, data=None, **kwargs):
         return self.queue.put(data, True, **dict(self.opt, **kwargs))
 
     def take(self, timeout=0):
         return self.queue.take(self.opt['tube'], timeout)
-    
+
     def kick(self, count=None):
         return self.queue.kick(self.opt['tube'], count)
 
     def statistics(self):
         return self.queue.statistics(tube=self.opt['tube'])
+
 
 class Queue(object):
     """
@@ -146,10 +148,12 @@ class Queue(object):
     For more usage, please, look into tests.
     Usage:
         >>> from tntqueue import Queue
-        >>> queue = tntqueue.Queue()
+        >>> queue = Queue()
         >>> tube1 = queue.create_tube('holy_grail', ttl=100, delay=5)
-        >>> tube1.put([1, 2, 3])    # Put task into the queue
-        >>> tube1.urgent([2, 3, 4]) # Put task into the beggining of queue (Highest priority).
+        # Put task into the queue
+        >>> tube1.put([1, 2, 3])
+        # Put task into the beggining of queue (Highest priority)
+        >>> tube1.urgent([2, 3, 4])
         >>> tube1.get() # We get task and automaticaly release it
         >>> task1 = tube1.take()
         >>> task2 = tube1.take()
@@ -161,7 +165,8 @@ class Queue(object):
         >>> del task1
         >>> print(tube1.take().data)
             [1, 2, 3]
-        >>> tube1.take().ack() # take task, make what it needs and 
+        # Take task and Ack it
+        >>> tube1.take().ack()
             True
     """
 
@@ -174,15 +179,19 @@ class Queue(object):
     class ZeroTupleException(Exception):
         pass
 
-    def serialize(self, data):
+    #TODO: Give an abilitiy to modify serializer/deserializer with an property
+    @staticmethod
+    def basic_serialize(data):
         return msgpack.packb(data)
 
-    def deserialize(self, data):
+    @staticmethod
+    def basic_deserialize(data):
         return msgpack.unpackb(data)
 
     def __init__(self, host="localhost", port=33013,  space=0, schema=None):
         if not(host and port):
-            raise Queue.BadConfigException("host and port params must be not empty")
+            raise Queue.BadConfigException("host and port params "
+                                           "must be not empty")
 
         if not isinstance(port, int):
             raise Queue.BadConfigException("port must be int")
@@ -196,14 +205,16 @@ class Queue(object):
         self.schema = schema
         self._instance_lock = Lock()
         self.tubes = {}
+        self.serialize = self.basic_serialize
+        self.deserialize = self.basic_deserialize
 
-    def tnt_instance(self):
+    @property
+    def tnt(self):
         with self._instance_lock:
             if not hasattr(self, '_tnt'):
-                self._tnt = tarantool.connect(self.host, self.port, schema=self.schema)
+                self._tnt = tarantool.connect(self.host, self.port,
+                                              schema=self.schema)
         return self._tnt
-
-    tnt = property(tnt_instance)
 
     def put(self, data, urgent=False, tube=None, **kwargs):
         """
@@ -365,7 +376,7 @@ class Queue(object):
         the_tuple = self.tnt.call("queue.kick", tuple(args))
         return the_tuple.return_code == 0
 
-    def statistics(self, overall = False, tube = None):
+    def statistics(self, overall=False, tube=None):
         """
         Return queue module statistics accumulated since server start.
         TODO: write better parser for stats (format `space.tube.op : count`.)
@@ -376,20 +387,20 @@ class Queue(object):
         if stat.rowcount > 0:
             return dict(zip(stat[0][0::2], stat[0][1::2]))
         return dict()
-    
+
     def touch(self, task_id):
         """
         Prolong living time for taken task with this id.
         """
         args = (str(self.space), task_id)
-        the_tuple = self.tnt.call("queue.touch", tuble(args))
+        the_tuple = self.tnt.call("queue.touch", tuple(args))
         return the_tuple.return_code == 0
 
     def create_tube(self, name, **kwargs):
         """
         Create Tube object, if not created before, and set kwargs.
         If existed, return existed Tube.
-        """ 
+        """
         if name in self.tubes:
             tube = self.tubes[name]
             tube.update_options(**kwargs)

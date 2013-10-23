@@ -72,24 +72,35 @@ class OpenConnectionTest(unittest.TestCase):
     def test_06_Destructor(self):
         task = self.tube.put("stupid task")
         # analog for del task; gc.gc()
-        task.__del__() # task is not taken - must not send exceptipn
+        # task is not taken - must not send exception
+        task.__del__()
         task = self.tube.take()
-        task.__del__() # task in taken - must not send exception
-        self.tube.take().ack() # task is acked - must not send exception
+        # task in taken - must not send exception
+        task.__del__()
+        # task is acked - must not send exception
+        self.tube.take().ack()
     
-    def test_08_CustomSerializer(self):
-        #This test must be the last test in this group
+    def test_07_CustomSerializer(self):
         class A:
             def __init__(self, a = 3, b = 4):
                 self.a = a
                 self.b = b
+            def __eq__(self, other):
+                return (isinstance(self, type(other))
+                        and self.a == other.a
+                        and self.b == other.b)
+
         self.queue.serialize = (lambda x: msgpack.packb([x.a, x.b]))
         self.queue.deserialize = (lambda x: A(*msgpack.unpackb(x)))
         a = A(5, 6)
         task1 = self.tube.put(a)
         task2 = self.tube.take()
-        self.assertEqual(task1.data.a, task2.data.a)
-        self.assertEqual(task1.data.b, task2.data.b)
+        self.assertEqual(task1.data, task2.data)
+        self.queue.serialize = self.queue.basic_serialize
+        self.queue.deserialize = self.queue.basic_deserialize
+        task1 = self.tube.put([1, 2, 3, "hello"])
+        task2 = self.tube.take()
+        self.assertEqual(task1.data, task2.data)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
