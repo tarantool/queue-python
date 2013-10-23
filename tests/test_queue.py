@@ -2,7 +2,8 @@ import copy
 import msgpack
 import unittest
 
-from tntqueue import Queue
+#from tntqueue import Queue
+from tarantool_queue import Queue
 import tarantool
 
 class OpenConnectionTest(unittest.TestCase):

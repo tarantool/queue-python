@@ -8,7 +8,6 @@ import msgpack
 from threading import Lock
 
 import tarantool
-from tarantool.error import DatabaseError, NetworkError
 
 
 def unpack_long_long(value):
@@ -170,8 +169,8 @@ class Queue(object):
             True
     """
 
-    DataBaseError = DatabaseError
-    NetworkError = NetworkError
+    DataBaseError = tarantool.DatabaseError
+    NetworkError = tarantool.NetworkError
 
     class BadConfigException(Exception):
         pass

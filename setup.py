@@ -22,7 +22,7 @@ setup(name='Distutils',
       maintainer='Eugine Blikh',
       maintainer_email='bigbes@gmail.com',
       license='MIT',
-      packages=['tntqueue'],
+      packages=['tarantool_queue'],
       platforms = ["all"],
       install_requires=[
             'msgpack-python',
@@ -31,7 +31,6 @@ setup(name='Distutils',
       url='http://github.com/bigbes92/tnt-pyq',
       test_suite='tests.test_queue',
       tests_require=[
-            'pytest',
             'msgpack-python',
             'tarantool'
           ],
