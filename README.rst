@@ -17,11 +17,11 @@ For install it type:
 
 .. code-block:: bash
 
-    # pip install -e git+https://github.com/bigbes92/tnt-pyq.git
+    $ sudo pip install -e git+https://github.com/bigbes92/tnt-pyq.git
 
-For configuring read manual `Here <https://github.com/tarantool/queue>`_
+For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_.
 
-Then just import it, create Queue, take Tube push and get some elements:
+Then just **import** it, create **Queue**, create **Tube**, **put** and **take** some elements:
     
 .. code-block:: python
 
@@ -36,4 +36,4 @@ Then just import it, create Queue, take Tube push and get some elements:
     >>> task.ack() # move this task into state DONE
     True
 
-That's all, folks
+That's all, folks!
