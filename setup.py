@@ -2,17 +2,11 @@ from setuptools import setup
 
 VERSION = "0.0.1"
 
-cmdclass = {}
-
-try:
-    from tests.setup_commands import test
-    cmdclass["tests"] = tests
-except ImportError:
-    pass
-
 setup(
     name = "tntqueue",
     packages = ["tntqueue"],
+    install_requires = ["msgpack-python", "tarantool"],
+    test_suite = "tests.test_queue",
     version = VERSION,
     platforms = ["all"],
     author = "Eugine Blikh",
@@ -21,5 +15,4 @@ setup(
     license = "MIT",
     description = "Python bindings for tarantool Queue",
     long_description = open("README.md").read(),
-    cmdclass = cmdclass
 )
