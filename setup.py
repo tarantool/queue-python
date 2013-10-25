@@ -1,7 +1,7 @@
 from setuptools import setup
 import sys
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 if 'upload' in sys.argv or 'register' in sys.argv or 'tarball' in sys.argv:
     import tntqueue
@@ -13,7 +13,7 @@ except ImportError:
     from distutils.core import setup
 
 
-setup(name='Distutils',
+setup(name='tarantool-queue',
       version=VERSION,
       description='Python bindings for Tarantool queue script (http://github.com/tarantool/queue)',
       long_description=open('README.rst').read(),

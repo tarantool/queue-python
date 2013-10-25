@@ -9,7 +9,7 @@ import tarantool
 class OpenConnectionTest(unittest.TestCase):
     def setUp(self):
         self.queue = Queue("127.0.0.1", 33013, 0)
-        self.tube = self.queue.create_tube("tube")
+        self.tube = self.queue.tube("tube")
 
     def tearDown(self):
         task = self.tube.take(1)
@@ -24,12 +24,12 @@ class OpenConnectionTest(unittest.TestCase):
         self.assertEqual(self.queue.tnt, conn)
 
     def test_01_Tubes(self):
-        tube1 = self.queue.create_tube("tube1")
-        self.assertEqual(self.queue.create_tube("tube1"), tube1)
+        tube1 = self.queue.tube("tube1")
+        self.assertEqual(self.queue.tube("tube1"), tube1)
         tube1.put([1, 2, 3])
         tube1.put([2, 3, 4])
-        self.queue.create_tube("tube1").take().ack()
-        self.queue.create_tube("tube1").take().ack()
+        self.queue.tube("tube1").take().ack()
+        self.queue.tube("tube1").take().ack()
 
     def test_02_Expire(self):
         with self.assertRaises(AttributeError):
@@ -42,6 +42,7 @@ class OpenConnectionTest(unittest.TestCase):
         self.assertEqual(task_meta.keys(), ['status', 'task_id', 'cid', 'ttr', 'tube', 'created', 'pri', 'ctaken', 'ipri', 'cbury', 'ttl', 'now', 'event'])
         self.tube.take().ack()
 
+    #TODO: Check format of output
     def test_04_Stats(self):
         # in our case overall==space, but less than tube stat.
         stat_overall = self.queue.statistics(True)
@@ -80,8 +81,8 @@ class OpenConnectionTest(unittest.TestCase):
         task.__del__()
         # task is acked - must not send exception
         self.tube.take().ack()
-    
-    def test_07_CustomSerializer(self):
+
+    def test_07_CustomQueueSerializer(self):
         class A:
             def __init__(self, a = 3, b = 4):
                 self.a = a
@@ -102,6 +103,10 @@ class OpenConnectionTest(unittest.TestCase):
         task1 = self.tube.put([1, 2, 3, "hello"])
         task2 = self.tube.take()
         self.assertEqual(task1.data, task2.data)
+
+    #TODO
+    def test_08_CustomTubeQueueSerializers(self):
+        pass
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
