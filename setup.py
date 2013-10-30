@@ -1,7 +1,7 @@
 from setuptools import setup
 import sys
 
-VERSION = '0.0.2'
+VERSION = '0.1.0'
 cmdclass = {}
 
 if 'upload' in sys.argv or 'register' in sys.argv or 'tarball' in sys.argv:
@@ -41,7 +41,7 @@ setup(name='tarantool-queue',
             'tarantool'
           ],
       classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'Operating System :: OS Independent',
             'Intended Audience :: Developers',
             'License :: OSI Approved :: MIT License',
