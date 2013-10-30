@@ -1,22 +1,30 @@
+import sys
 import copy
 import msgpack
 import unittest
 
-#from tntqueue import Queue
 from tarantool_queue import Queue
 import tarantool
 
-class OpenConnectionTest(unittest.TestCase):
-    def setUp(self):
-        self.queue = Queue("127.0.0.1", 33013, 0)
-        self.tube = self.queue.tube("tube")
+class TestSuite_Basic(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        sys.stdout.write("setUp ...")
+        cls.queue = Queue("127.0.0.1", 33013, 0)
+        cls.tube = cls.queue.tube("tube")
+        print(" ok")
 
-    def tearDown(self):
-        task = self.tube.take(1)
-        while (task is not None):
-            task.ack()
-            task = self.tube.take(1)
+    @classmethod
+    def tearDownClass(cls):
+        sys.stdout.write("tearDown ...")
+        for tube in cls.queue.tubes.values():
+            task = tube.take(1)
+            while (task is not None):
+                task.ack()
+                task = tube.take(1)
+        print(" ok")
 
+class TestSuite_00_ConnectionTest(TestSuite_Basic):
     def test_00_ConProp(self):
         conn = self.queue.tnt
         self.assertTrue(isinstance(conn, tarantool.connection.Connection))
@@ -44,12 +52,10 @@ class OpenConnectionTest(unittest.TestCase):
 
     #TODO: Check format of output
     def test_04_Stats(self):
-        # in our case overall==space, but less than tube stat.
-        stat_overall = self.queue.statistics(True)
+        # in our case info for tube less than info for space
         stat_space = self.queue.statistics()
         stat_tube = self.tube.statistics()
-        self.assertEqual(stat_overall, stat_space)
-        self.assertNotEqual(stat_overall, stat_tube)
+        self.assertNotEqual(stat_space, stat_tube)
 
     def test_05_Urgent(self):
         task1_p = self.tube.put("basic prio")
@@ -82,7 +88,8 @@ class OpenConnectionTest(unittest.TestCase):
         # task is acked - must not send exception
         self.tube.take().ack()
 
-    def test_07_CustomQueueSerializer(self):
+class TestSuite_01_SerializerTest(TestSuite_Basic):
+    def test_00_CustomQueueSerializer(self):
         class A:
             def __init__(self, a = 3, b = 4):
                 self.a = a
@@ -105,8 +112,9 @@ class OpenConnectionTest(unittest.TestCase):
         self.assertEqual(task1.data, task2.data)
 
     #TODO
-    def test_08_CustomTubeQueueSerializers(self):
+    def test_01_CustomTubeQueueSerializers(self):
         pass
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    #TODO
+    def test_02_CustomMixedSerializers(self):
+        pass

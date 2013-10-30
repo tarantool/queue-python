@@ -2,6 +2,7 @@ from setuptools import setup
 import sys
 
 VERSION = '0.0.2'
+cmdclass = {}
 
 if 'upload' in sys.argv or 'register' in sys.argv or 'tarball' in sys.argv:
     import tntqueue
@@ -12,6 +13,11 @@ try:
 except ImportError:
     from distutils.core import setup
 
+try:
+    from sphinx.setup_command import BuildDoc
+    cmdclass["build_sphinx"] = BuildDoc
+except ImportError:
+    pass
 
 setup(name='tarantool-queue',
       version=VERSION,
@@ -43,5 +49,6 @@ setup(name='tarantool-queue',
             'Programming Language :: Python :: 2.7',
             'Topic :: Database :: Front-Ends',
             'Environment :: Console'
-          ]
+          ],
+      cmdclass = cmdclass
 )

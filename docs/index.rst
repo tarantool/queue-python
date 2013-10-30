@@ -17,7 +17,7 @@ For install it type:
 
 .. code-block:: bash
 
-    $ sudo pip install git+https://github.com/bigbes92/tarantool-queue-python.git
+    $ sudo pip install git+https://github.com/bigbes92/tnt-pyq.git
 
 For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_.
 
@@ -37,3 +37,7 @@ Then just **import** it, create **Queue**, create **Tube**, **put** and **take**
     True
 
 That's all, folks!
+
+See Also
+==================
+* :ref:`codeapi`
