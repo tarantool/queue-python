@@ -9,10 +9,8 @@ import tarantool
 class TestSuite_Basic(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        sys.stdout.write("setUp ...")
         cls.queue = Queue("127.0.0.1", 33013, 0)
         cls.tube = cls.queue.tube("tube")
-        print(" ok")
 
     @classmethod
     def tearDownClass(cls):
@@ -50,7 +48,6 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         self.assertEqual(task_meta.keys(), ['status', 'task_id', 'cid', 'ttr', 'tube', 'created', 'pri', 'ctaken', 'ipri', 'cbury', 'ttl', 'now', 'event'])
         self.tube.take().ack()
 
-    #TODO: Check format of output
     def test_04_Stats(self):
         # in our case info for tube less than info for space
         stat_space = self.queue.statistics()
@@ -101,20 +98,89 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
 
         self.queue.serialize = (lambda x: msgpack.packb([x.a, x.b]))
         self.queue.deserialize = (lambda x: A(*msgpack.unpackb(x)))
-        a = A(5, 6)
+        a = A()
         task1 = self.tube.put(a)
         task2 = self.tube.take()
         self.assertEqual(task1.data, task2.data)
+        self.assertEqual(a, task2.data)
+        task2.ack()
         self.queue.serialize = self.queue.basic_serialize
         self.queue.deserialize = self.queue.basic_deserialize
         task1 = self.tube.put([1, 2, 3, "hello"])
         task2 = self.tube.take()
         self.assertEqual(task1.data, task2.data)
+        task2.ack()
 
-    #TODO
     def test_01_CustomTubeQueueSerializers(self):
-        pass
+        class A:
+            def __init__(self, a = 3, b = 4):
+                self.a = a
+                self.b = b
+            def __eq__(self, other):
+                return (isinstance(self, type(other))
+                        and self.a == other.a
+                        and self.b == other.b)
 
-    #TODO
+        self.tube.serialize = (lambda x: msgpack.packb([x.a, x.b]))
+        self.tube.deserialize = (lambda x: A(*msgpack.unpackb(x)))
+        a = A()
+        task1 = self.tube.put(a)
+        task2 = self.tube.take()
+        self.assertEqual(task1.data, task2.data)
+        task2.ack()
+        self.tube.serialize = None 
+        self.tube.deserialize = None
+        a = [1, 2, 3, "hello"] 
+        task1 = self.tube.put(a)
+        task2 = self.tube.take()
+        self.assertEqual(task1.data, task2.data)
+        self.assertEqual(a, task2.data)
+        task2.ack()
+
     def test_02_CustomMixedSerializers(self):
-        pass
+        class A:
+            def __init__(self, a = 3, b = 4):
+                self.a = a
+                self.b = b
+            def __eq__(self, other):
+                return (isinstance(self, type(other))
+                        and self.a == other.a
+                        and self.b == other.b)
+
+        class B:
+            def __init__(self, a = 5, b = 6, c = 7):
+                self.a = a
+                self.b = b
+                self.c = c
+            def __eq__(self, other):
+                return (isinstance(self, type(other))
+                        and self.a == other.a
+                        and self.b == other.b
+                        and self.c == other.c)
+
+        self.queue.serialize = (lambda x: msgpack.packb([x.a, x.b]))
+        self.queue.deserialize = (lambda x: A(*msgpack.unpackb(x)))
+        self.tube.serialize = (lambda x: msgpack.packb([x.a, x.b, x.c]))
+        self.tube.deserialize = (lambda x: B(*msgpack.unpackb(x)))
+        b = B()
+        task1 = self.tube.put(b)
+        task2 = self.tube.take()
+        task2.ack()
+        self.assertEqual(task1.data, task2.data)
+        self.assertEqual(b, task2.data)
+        self.tube.serialize = None
+        self.tube.deserialize = None
+        a = A()
+        task1 = self.tube.put(a)
+        task2 = self.tube.take()
+        task2.ack()
+        self.assertEqual(task1.data, task2.data)
+        self.assertEqual(a, task2.data)
+        self.queue.serialize = self.queue.basic_serialize
+        self.queue.deserialize = self.queue.basic_deserialize
+        a = [1, 2, 3, "hello"]
+        task1 = self.tube.put(a)
+        task2 = self.tube.take()
+        self.assertEqual(task1.data, task2.data)
+        self.assertEqual(a, task2.data)
+        task2.ack()

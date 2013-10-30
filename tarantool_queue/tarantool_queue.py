@@ -197,7 +197,7 @@ class Tube(object):
         return self._serialize
     @serialize.setter
     def serialize(self, func):
-        if not (hasattr(func, '__call__') or None):
+        if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._serialize = func
@@ -217,7 +217,7 @@ class Tube(object):
 
     @deserialize.setter
     def deserialize(self, func):
-        if not (hasattr(func, '__call__') or None):
+        if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._deserialize = func
@@ -389,7 +389,7 @@ class Queue(object):
         return self._serialize
     @serialize.setter
     def serialize(self, func):
-        if not (hasattr(func, '__call__') or None):
+        if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._serialize = func
@@ -409,7 +409,7 @@ class Queue(object):
 
     @deserialize.setter
     def deserialize(self, func):
-        if not (hasattr(func, '__call__') or None):
+        if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._deserialize = func
