@@ -1,3 +1,5 @@
+.. _quick_start_en:
+
 ===========
 Quick Start
 ===========
@@ -34,9 +36,9 @@ Install tarantool-queue-python
     $ cd tarantool-queue-0.1.0
     $ sudo python setup.py install
 
---------------------
-Connecting to server
---------------------
+-----------------------------------------
+Connecting to server and basic operations
+-----------------------------------------
 
 In the beggining you must import tarantool-queue and create queue object:
 
