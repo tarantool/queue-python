@@ -51,3 +51,9 @@ Then just **import** it, create **Queue**, create **Tube**, **put** and **take**
     True
 
 That's all, folks!
+
+See Also
+========
+* `Documentation <http://tarantool-queue-python.readthedocs.org/en/latest/>`_
+* `1. Quick Start <http://tarantool-queue-python.readthedocs.org/en/latest/qutick-start.en.html>`
+* `2. Queue API   <http://tarantool-queue-python.readthedocs.org/en/latest/code.html>`
