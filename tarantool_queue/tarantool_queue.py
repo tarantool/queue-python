@@ -2,7 +2,7 @@
 import re
 import struct
 import msgpack
-from threading import Lock
+import threading
 
 import tarantool
 
@@ -18,7 +18,7 @@ def unpack_long(value):
 class Task(object):
     """
     Tarantool queue task wrapper.
-    
+
     .. warning::
 
         Don't instantiate it with your bare hands
@@ -36,7 +36,7 @@ class Task(object):
     def ack(self):
         """
         Confirm completion of a task. Before marking a task as complete
-        
+
         :rtype: `Task` instance
         """
         self.modified = True
@@ -45,7 +45,7 @@ class Task(object):
     def release(self, **kwargs):
         """
         Return a task back to the queue: the task is not executed.
-        
+
         :param ttl: new time to live
         :param delay: new delay for task
         :type ttl: int
@@ -70,7 +70,7 @@ class Task(object):
         Puts the task at the end of the queue, so that it's
         executed only after all existing tasks in the queue are
         executed.
-        
+
         :rtype: boolean
         """
         self.modified = True
@@ -125,7 +125,7 @@ class Task(object):
     def touch(self):
         """
         Prolong living time for taken task with this id.
-        
+
         :rtype: boolean
         """
         return self.queue._touch(self.task_id)
@@ -169,7 +169,7 @@ class Tube(object):
     """
     Tarantol queue tube wrapper. Pinned to space and tube, but unlike Queue
     it has predefined delay, ttl, ttr, and pri.
-    
+
     .. warning::
 
         Don't instantiate it with your bare hands
@@ -201,10 +201,6 @@ class Tube(object):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._serialize = func
-
-    @serialize.deleter
-    def serialize(self):
-        self._serialize = None
 #----------------
     @property
     def deserialize(self):
@@ -214,17 +210,12 @@ class Tube(object):
         if self._deserialize is None:
             return self.queue.deserialize
         return self._deserialize
-
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
         self._deserialize = func
-
-    @deserialize.deleter
-    def deserialize(self):
-        self._deserialize = None
 #----------------
     def update_options(self, **kwargs):
         """
@@ -298,7 +289,7 @@ class Tube(object):
         """
         'Dig up' count tasks in a queue. If count is not given, digs up
         just one buried task.
-        
+
         :rtype boolean
         """
         return self.queue._kick(self.opt['tube'], count)
@@ -373,7 +364,6 @@ class Queue(object):
         self.port = port
         self.space = space
         self.schema = schema
-        self._instance_lock = Lock()
         self.tubes = {}
         self._serialize = self.basic_serialize
         self._deserialize = self.basic_deserialize
@@ -382,18 +372,18 @@ class Queue(object):
     @property
     def serialize(self):
         """
-        Serialize function: must be Callable or None. Sets None when deleted.
+        Serialize function: must be Callable. If sets to None or deleted, then
+        it will use msgpack for serializing.
         """
-        if self._serialize is None:
-            return self.queue.serialize
+        if not hasattr(self, '_serialize'):
+            self.serialize = self.basic_serialize
         return self._serialize
     @serialize.setter
     def serialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not "+str(type(func)))
-        self._serialize = func
-
+        self._serialize = func if not (func is None) else self.basic_serialize
     @serialize.deleter
     def serialize(self):
         self._serialize = self.basic_serialize
@@ -401,30 +391,76 @@ class Queue(object):
     @property
     def deserialize(self):
         """
-        Deserialize function: must be Callable or None. Sets None when deleted
+        Deserialize function: must be Callable. If sets to None or delete,
+        then it will use msgpack for deserializing.
         """
-        if self._deserialize is None:
-            return self.queue.deserialize
+        if not hasattr(self, '_deserialize'):
+            self._deserialize = self.basic_deserialize
         return self._deserialize
-
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
-        self._deserialize = func
-
+                            "or None, but not " + str(type(func)))
+        self._deserialize = func if not (func is None) else self.basic_deserialize
     @deserialize.deleter
     def deserialize(self):
         self._deserialize = self.basic_deserialize
 #----------------
+    @property
+    def tarantool_connection(self):
+        """
+        Tarantool Connection class: must be class with methods call and
+        __init__. If it sets to None or deleted - it will use the default
+        tarantool.Connection class for connection.
+        """
+        if not hasattr(self, '_conclass'):
+            self._conclass = tarantool.Connection
+        return self._conclass
+    @tarantool_connection.setter
+    def tarantool_connection(self, cls):
+        if not('call' in dir(cls) and '__init__' in dir(cls)) and not (cls is None):
+            raise TypeError("Connection class must have"
+                            " connect and call methods or be None")
+        self._conclass = cls if not (cls is None) else tarantool.Connection
+        if hasattr(self, '_tnt'):
+            self.__dict__.pop('_tnt')
+    @tarantool_connection.deleter
+    def tarantool_connection(self):
+        if hasattr(self, '_conclass'):
+            self.__dict__.pop('_conclass')
+        if hasattr(self, '_tnt'):
+            self.__dict__.pop('_tnt')
+#----------------
+    @property
+    def tarantool_lock(self):
+        """
+        Locking class: must be locking instance with methods __enter__ and __exit__. If
+        it sets to None or delete - it will use default threading.Lock() instance
+        for locking in the connecting.
+        """
+        if not hasattr(self, '_lockinst'):
+            self._lockinst = threading.Lock()
+        return self._lockinst
+    @tarantool_lock.setter
+    def tarantool_lock(self, lock):
+        if not('__enter__' in dir(lock) and '__exit__' in dir(lock)) and not (lock is None):
+            raise TypeError("Lock class must have"
+                            " `__enter__` and `__exit__` methods or be None")
+        self._lockinst = lock if not (lock is None) else threading.Lock()
+    @tarantool_lock.deleter
+    def tarantool_lock(self):
+        if hasattr(self, '_lockinst'):
+            self.__dict__.pop('_lockinst')
+#----------------
 
     @property
     def tnt(self):
-        with self._instance_lock:
-            if not hasattr(self, '_tnt'):
-                self._tnt = tarantool.connect(self.host, self.port,
-                                              schema=self.schema)
+        if not hasattr(self, '_tnt'):
+            with self.tarantool_lock:
+                if not hasattr(self, '_tnt'):
+                    self._tnt = self.tarantool_connection(self.host, self.port,
+                                          schema=self.schema)
         return self._tnt
 
     def _take(self, tube, timeout=0):
@@ -485,7 +521,7 @@ class Queue(object):
     def peek(self, task_id):
         """
         Return a task by task id.
-        
+
         :param task_id: UUID of task in HEX
         :type task_id: string
         :rtype: `Task` instance
@@ -515,7 +551,7 @@ class Queue(object):
         e.g.:
 
             >>> tube.statistics()
-            # or queue.statistics('tube0') 
+            # or queue.statistics('tube0')
             # or queue.statistics(tube.opt['tube'])
             {'ack': '233',
             'meta': '35',
@@ -580,7 +616,7 @@ class Queue(object):
         """
         Create Tube object, if not created before, and set kwargs.
         If existed, return existed Tube.
-        
+
         :param name: name of Tube
         :param delay: default delay for Tube tasks (Not necessary, will be 0)
         :param ttl: default TTL for Tube tasks (Not necessary, will be 0)

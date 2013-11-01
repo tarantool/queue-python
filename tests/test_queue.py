@@ -2,6 +2,7 @@ import sys
 import copy
 import msgpack
 import unittest
+import threading
 
 from tarantool_queue import Queue
 import tarantool
@@ -184,3 +185,57 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
         self.assertEqual(task1.data, task2.data)
         self.assertEqual(a, task2.data)
         task2.ack()
+
+class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
+    def test_00_GoodLock(self):
+        class GoodFake(object):
+            def __enter__(self):
+                pass
+            def __exit__(self):
+                pass
+
+        self.queue.tarantool_lock = threading.Lock()
+        self.queue.tarantool_lock = None
+        self.assertTrue(isinstance(self.queue.tarantool_lock, type(threading.Lock())))
+        self.queue.tarantool_lock = threading.RLock()
+        self.queue.tarantool_lock = GoodFake
+        del(self.queue.tarantool_lock)
+        self.assertTrue(isinstance(self.queue.tarantool_lock, type(threading.Lock())))
+        
+    def test_01_GoodConnection(self):
+        class GoodFake(object):
+            def __init__(self):
+                pass
+            def call(self):
+                pass
+
+        self.queue.tarantool_connection = tarantool.Connection
+        self.queue.statistics() # creating basic _tnt
+        self.assertTrue(hasattr(self.queue, '_tnt')) # check that it exists
+        self.queue.tarantool_connection = None # delete _tnt
+        self.assertFalse(hasattr(self.queue, '_tnt')) # check that it doesn't exists
+        self.assertEqual(self.queue.tarantool_connection, tarantool.Connection)
+        self.queue.tarantool_connection = GoodFake
+        del(self.queue.tarantool_connection)
+        self.assertEqual(self.queue.tarantool_connection, tarantool.Connection)
+
+    def test_02_BadLock(self):
+        class BadFake(object):
+            pass
+        with self.assertRaises(TypeError):
+            self.queue.tarantool_lock = BadFake
+        with self.assertRaises(TypeError):
+            self.queue.tarantool_lock = (lambda x: x)
+
+    def test_03_BadConnection(self):
+        class BadFake(object):
+            pass
+        with self.assertRaises(TypeError):
+            self.queue.tarantool_lock = BadFake
+        with self.assertRaises(TypeError):
+            self.queue.tarantool_lock = (lambda x: x)
+
+    def test_04_OverallTest(self):
+        self.queue.tarantool_lock = threading.Lock()
+        self.queue.tarantool_connection = tarantool.Connection
+        self.assertIsNotNone(self.queue.statistics())
