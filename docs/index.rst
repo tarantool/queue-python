@@ -6,7 +6,7 @@ Python Bindings for `Tarantool Queue <https://github.com/tarantool/queue/>`_.
 
 Library depends on:
 
-* msgpack-python 
+* msgpack-python
 * tarantool
 
 Basic usage can be found in tests. Description on every command is in source code.
@@ -31,15 +31,15 @@ For install bleeding edge type:
 
 .. code-block:: bash
 
-    $ sudo pip install git+https://github.com/bigbes92/tarantool-queue-python.git
+    $ sudo pip install git+https://github.com/tarantool/tarantool-queue-python.git
 
-For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_.
+For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_ or read :ref:`prepare_server`.
 
 Then just **import** it, create **Queue**, create **Tube**, **put** and **take** some elements:
-    
+
 .. code-block:: python
 
-    >>> from tarantool_queue import Queue 
+    >>> from tarantool_queue import Queue
     >>> queue = Queue("localhost", 33013, 0)
     >>> tube = queue.tube("name_of_tube")
     >>> tube.put([1, 2, 3])
@@ -55,5 +55,10 @@ That's all, folks!
 See Also
 ========
 * `Documentation <http://tarantool-queue-python.readthedocs.org/en/latest/>`_
-* :ref:`quick_start_en`
-* :ref:`codeapi`
+* `Repository <http://github.com/tarantool/tarantool-queue-python>`_
+
+.. toctree::
+    :maxdepth: 1
+
+    code
+    quick-start.en

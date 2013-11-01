@@ -33,7 +33,7 @@ For install bleeding edge type:
 
     $ sudo pip install git+https://github.com/bigbes92/tarantool-queue-python.git
 
-For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_.
+For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_ or read :ref:prepare_server:.
 
 Then just **import** it, create **Queue**, create **Tube**, **put** and **take** some elements:
     
@@ -55,5 +55,5 @@ That's all, folks!
 See Also
 ========
 * `Documentation <http://tarantool-queue-python.readthedocs.org/en/latest/>`_
-* `Quick Start <http://tarantool-queue-python.readthedocs.org/en/latest/qutick-start.en.html>`_
+* `Quick Start <http://tarantool-queue-python.readthedocs.org/en/latest/quick-start.en.html>`_
 * `Queue API   <http://tarantool-queue-python.readthedocs.org/en/latest/code.html>`_

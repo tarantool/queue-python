@@ -1,12 +1,9 @@
 from setuptools import setup
 import sys
 
-VERSION = '0.1.0'
 cmdclass = {}
 
-if 'upload' in sys.argv or 'register' in sys.argv or 'tarball' in sys.argv:
-    import tntqueue
-    assert tntqueue.VERSION == VERSION
+from tarantool_queue import __version__
 
 try:
     from setuptools import setup
@@ -20,7 +17,7 @@ except ImportError:
     pass
 
 setup(name='tarantool-queue',
-      version=VERSION,
+      version=__version__,
       description='Python bindings for Tarantool queue script (http://github.com/tarantool/queue)',
       long_description=open('README.rst').read(),
       author='Eugine Blikh',
@@ -34,7 +31,7 @@ setup(name='tarantool-queue',
             'msgpack-python',
             'tarantool'
           ],
-      url='http://github.com/bigbes92/tnt-pyq',
+      url='http://github.com/tarantool/tarantool-queue-python',
       test_suite='tests.test_queue',
       tests_require=[
             'msgpack-python',
