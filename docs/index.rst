@@ -22,9 +22,9 @@ For install of latest "stable" version type:
     # or using easy_install
     $ sudo easy_install tarantool-queue
     # or using python
-    $ wget http://is.gd/tarantool_queue
-    $ tar xzf tarantool-queue-0.1.0.tar.gz
-    $ cd tarantool-queue-0.1.0
+    $ wget http://bit.ly/tarantool_queue -O tarantool_queue.tar.gz
+    $ tar xzf tarantool_queue.tar.gz
+    $ cd tarantool-queue-{version}
     $ sudo python setup.py install
 
 For install bleeding edge type:
