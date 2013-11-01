@@ -85,10 +85,10 @@ class Task(object):
         :rtype: boolean
         """
         self.modified = True
-        the_tuple = self.tnt.call("queue.done", (
+        the_tuple = self.queue.tnt.call("queue.done", (
             str(self.queue.space),
-            str(task_id),
-            self.tube.serialize(data))
+            str(self.task_id),
+            self.queue.tube(self.tube).serialize(data))
         )
         return the_tuple.return_code == 0
 
@@ -266,7 +266,7 @@ class Tube(object):
         """
         Same as :meth:`Tube.put() <tarantool_queue.Tube.put>` put, but set highest priority for this task.
         """
-        kwargs['urgent']=True
+        kwargs['urgent'] = True
         return self.put(data, **dict(self.opt, **kwargs))
 
     def take(self, timeout=0):
@@ -460,7 +460,7 @@ class Queue(object):
             with self.tarantool_lock:
                 if not hasattr(self, '_tnt'):
                     self._tnt = self.tarantool_connection(self.host, self.port,
-                                          schema=self.schema)
+                                                          schema=self.schema)
         return self._tnt
 
     def _take(self, tube, timeout=0):
@@ -592,7 +592,7 @@ class Queue(object):
         ans = {}
         if stat.rowcount > 0:
             for k, v in dict(zip(stat[0][0::2], stat[0][1::2])).iteritems():
-                k_t =  re.split('space([^.]*)\.(.*)\.([^.]*)', k)[1:3]
+                k_t = re.split(r'space([^.]*)\.(.*)\.([^.]*)', k)[1:3]
                 task = False
                 if int(k_t[0]) != self.space:
                     continue
@@ -600,7 +600,7 @@ class Queue(object):
                     k_t = map((lambda x: x[::-1]), k_t[1][::-1].split('.', 1))[::-1] + k_t[2:3]
                     task = True
                 if not (k_t[1] in ans):
-                    ans[k_t[1]] = {'tasks' : {}}
+                    ans[k_t[1]] = {'tasks': {}}
                 if task:
                     ans[k_t[1]]['tasks'][k_t[-1]] = v
                 else:
