@@ -224,6 +224,38 @@ You must use **Queue.peek(uuid)** method!
     task = queue.peek(meal_uuid)
     print task.data # Spam-Egg-Spam-Spam-Bacon-Spam
 
+^^^^^^^^^^^^^^^
+Question-Answer
+^^^^^^^^^^^^^^^
+*Q*. What should i do, to use my own great tarantool connector in this Queue? How may i
+reset it into defaults?
+
+*A*. You must simply use **Queue.tarantool_connector** field for setting it. Just ensure
+that your connector has **constructor** and **call** fields. 
+
+For reseting it simply do:
+
+.. code-block:: python
+
+    del(queue.tarantool_connector)
+    # OR
+    queue.tarantool_connector = None
+
+*Q*. I'm using another great coroutines library! I really need another locking mechanism,
+instead of your threading.Lock.
+
+*A*. It's ok! You may simply set **Queue.tarantool_lock** field with your lock. Just
+assure that your locking mechanism has **__enter__** and **__exit__** methods
+(your lock will be used in the "with LOCK:..." construction)
+
+For reseting it simply do:
+
+.. code-block:: python
+
+    del(queue.tarantool_lock)
+    # OR
+    queue.tarantool_lock = None
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 And Now for Something Completely Different..
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
