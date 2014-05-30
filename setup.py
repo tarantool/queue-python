@@ -17,12 +17,10 @@ try:
 except ImportError:
     pass
 
-
 def read(*parts):
     filename = os.path.join(os.path.dirname(__file__), *parts)
     with codecs.open(filename, encoding='utf-8') as fp:
         return fp.read()
-
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
@@ -31,7 +29,6 @@ def find_version(*file_paths):
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
-
 
 setup(name='tarantool-queue',
       version=find_version('tarantool_queue', '__init__.py'),
