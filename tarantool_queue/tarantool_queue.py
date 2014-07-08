@@ -592,19 +592,20 @@ class Queue(object):
         ans = {}
         if stat.rowcount > 0:
             for k, v in dict(zip(stat[0][0::2], stat[0][1::2])).iteritems():
-                k_t = re.split(r'space([^.]*)\.(.*)\.([^.]*)', k)[1:3]
-                task = False
+                k_t = list(re.match(r'space([^.]*)\.(.*)\.([^.]*)', k).groups())
                 if int(k_t[0]) != self.space:
                     continue
-                if k_t[-1] in ('total', 'ready', 'delayed', 'taken', 'buried', 'done'):
-                    k_t = map((lambda x: x[::-1]), k_t[1][::-1].split('.', 1))[::-1] + k_t[2:3]
-                    task = True
+                if k_t[1].endswith('.tasks'):
+                    k_t = k_t[0:1] + k_t[1].split('.') + k_t[2:3]
                 if not (k_t[1] in ans):
                     ans[k_t[1]] = {'tasks': {}}
-                if task:
+                if len(k_t) == 4:
                     ans[k_t[1]]['tasks'][k_t[-1]] = v
-                else:
+                elif len(k_t) == 3:
                     ans[k_t[1]][k_t[-1]] = v
+                else:
+                    raise Queue.ZeroTupleException('stats: \
+                            error when parsing respons')
         return ans[tube] if tube else ans
 
     def _touch(self, task_id):
