@@ -23,13 +23,11 @@ class TTask(object):
 
         Don't instantiate it with your bare hands
     """
-    def __init__(self, queue, space=0, task_id=0,
-                 tube="", status="", raw_data=None):
+    def __init__(self, queue, task_id=0,
+                 tube="", raw_data=None):
         self.task_id = unpack_long_long(task_id)
         self.tube = tube
-        self.status = status
         self.raw_data = raw_data
-        self.space = space
         self.queue = queue
         self.modified = False
 
@@ -74,12 +72,12 @@ class TTask(object):
 
     def __str__(self):
         args = (
-            self.task_id, self.tube, self.status, self.space
+            self.task_id, self.tube, self.queue.space
         )
-        return "Task (id: {0}, tube:{1}, status: {2}, space:{3})".format(*args)
+        return "Task (id: {0}, tube:{1}, space:{2})".format(*args)
 
     def __del__(self):
-        if self.status == 'taken' and not self.modified:
+        if not self.modified:
             self.release()
 
     @classmethod
@@ -89,12 +87,12 @@ class TTask(object):
         if the_tuple.rowcount < 1:
             raise TQueue.ZeroTupleException('error creating task')
         row = the_tuple[0]
+        if len(row) < 9:
+            raise TQueue.NoDataException('no data in the task')
         return cls(
             queue,
-            space=queue.space,
             task_id=row[0],
             tube=row[4],
-            status=row[3],
             raw_data=row[8],
         )
 
@@ -110,6 +108,7 @@ class TTube(object):
     """
     def __init__(self, queue, name, **kwargs):
         self.queue = queue
+        self.tube = name
         self.opt = {
             'delay' : 0,
             'limits': 500000,
@@ -195,7 +194,7 @@ class TTube(object):
             str(opt["retry"]),
             self.serialize(data))
         )
-        return the_tuple[0][0]
+        return unpack_long_long(the_tuple[0][0])
 
     def take(self, timeout=0):
         """
@@ -253,6 +252,9 @@ class TQueue(object):
         pass
 
     class ZeroTupleException(Exception):
+        pass
+
+    class NoDataException(Exception):
         pass
 
     @staticmethod
@@ -395,11 +397,6 @@ class TQueue(object):
         the_tuple = self.tnt.call("box.queue.release", (
             str(self.space),
             str(task_id),
-            str(prio),
-            str(delay),
-            str(ttr),
-            str(ttl),
-            str(retry)
         ))
         return TTask.from_tuple(self, the_tuple)
 
