@@ -1,4 +1,6 @@
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .tarantool_queue import Task, Tube, Queue
-__all__ = [Task, Tube, Queue, __version__]
+from .tarantool_tqueue import TQueue, TTube, TTask
+
+__all__ = [Task, Tube, Queue, TTask, TTube, TQueue, __version__]
