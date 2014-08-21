@@ -1,4 +1,4 @@
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .tarantool_queue import Queue
 from .tarantool_tqueue import TQueue

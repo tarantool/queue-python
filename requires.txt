@@ -1,2 +1,2 @@
 msgpack-python
-tarantool
+tarantool<0.4
