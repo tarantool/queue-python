@@ -31,7 +31,7 @@ For install bleeding edge type:
 
 .. code-block:: bash
 
-    $ sudo pip install git+https://github.com/bigbes92/tarantool-queue-python.git
+    $ sudo pip install git+https://github.com/tarantool/tarantool-queue-python.git
 
 For configuring Queue in `Tarantool <http://tarantool.org>`_ read manual `Here <https://github.com/tarantool/queue>`_.
 
