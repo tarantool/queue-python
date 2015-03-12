@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 import struct
 import msgpack
 import threading
@@ -67,7 +66,8 @@ class TTask(object):
         if not self.raw_data:
             return None
         if not hasattr(self, '_decoded_data'):
-            self._decoded_data = self.queue.tube(self.tube).deserialize(self.raw_data)
+            data = self.queue.tube(self.tube).deserialize(self.raw_data)
+            self._decoded_data = data
         return self._decoded_data
 
     def __str__(self):
@@ -110,18 +110,19 @@ class TTube(object):
         self.queue = queue
         self.tube = name
         self.opt = {
-            'delay' : 0,
+            'delay': 0,
             'limits': 500000,
-            'ttl'   : 0,
-            'ttr'   : 300,
-            'pri'   : 0x7fff,
-            'retry' : 5,
-            'tube'  : name
+            'ttl': 0,
+            'ttr': 300,
+            'pri': 0x7fff,
+            'retry': 5,
+            'tube': name
         }
         self.opt.update(kwargs)
         self._serialize = None
         self._deserialize = None
-#----------------
+
+    # ----------------
     @property
     def serialize(self):
         """
@@ -130,13 +131,15 @@ class TTube(object):
         if self._serialize is None:
             return self.queue.serialize
         return self._serialize
+
     @serialize.setter
     def serialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
+                            "or None, but not " + str(type(func)))
         self._serialize = func
-#----------------
+
+    # ----------------
     @property
     def deserialize(self):
         """
@@ -145,13 +148,15 @@ class TTube(object):
         if self._deserialize is None:
             return self.queue.deserialize
         return self._deserialize
+
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
+                            "or None, but not " + str(type(func)))
         self._deserialize = func
-#----------------
+
+    # ----------------
     def update_options(self, **kwargs):
         """
         Update options for current tube (such as ttl, ttr, pri and delay)
@@ -166,13 +171,15 @@ class TTube(object):
         Default Priority is 0x7ff. Lesser value - more priority.
 
         :param data: Data for pushing into queue
-        :param delay: new delay for task (Not necessary, Default of Tube object)
+        :param delay: new delay for task
+                      (Not necessary, Default of Tube object)
         :param ttl: new time to live (Not necessary, Default of Tube object)
         :param ttr: time to release (Not necessary, Default of Tube object)
         :param tube: name of Tube (Not necessary, Default of Tube object)
         :param pri: priority (Not necessary, Default of Tube object)
         :param retry: Number of retries (Not necessary, Default of Tube object)
-        :param limits: Number of tasks in Tube max (Not necessary, Default of Tube object)
+        :param limits: Number of tasks in Tube max
+                       (Not necessary, Default of Tube object)
         :type ttl: int
         :type delay: int
         :type ttr: int
@@ -211,7 +218,7 @@ class TTube(object):
         :rtype: `Task` instance or None
         """
         return self.queue._take(self.opt['tube'], timeout)
- 
+
 
 class TQueue(object):
     """
@@ -265,10 +272,10 @@ class TQueue(object):
     def basic_deserialize(data):
         return msgpack.unpackb(data)
 
-    def __init__(self, host="localhost", port=33013,  space=0, schema=None):
+    def __init__(self, host="localhost", port=33013, space=0, schema=None):
         if not(host and port):
-            raise TQueue.BadConfigException("host and port params "
-                                           "must be not empty")
+            raise TQueue.BadConfigException(
+                "host and port params must be not empty")
 
         if not isinstance(port, int):
             raise TQueue.BadConfigException("port must be int")
@@ -284,7 +291,7 @@ class TQueue(object):
         self._serialize = self.basic_serialize
         self._deserialize = self.basic_deserialize
 
-#----------------
+    # ----------------
     @property
     def serialize(self):
         """
@@ -294,16 +301,19 @@ class TQueue(object):
         if not hasattr(self, '_serialize'):
             self.serialize = self.basic_serialize
         return self._serialize
+
     @serialize.setter
     def serialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
-        self._serialize = func if not (func is None) else self.basic_serialize
+                            "or None, but not " + str(type(func)))
+        self._serialize = func if func is not None else self.basic_serialize
+
     @serialize.deleter
     def serialize(self):
         self._serialize = self.basic_serialize
-#----------------
+
+    # ----------------
     @property
     def deserialize(self):
         """
@@ -313,16 +323,21 @@ class TQueue(object):
         if not hasattr(self, '_deserialize'):
             self._deserialize = self.basic_deserialize
         return self._deserialize
+
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not " + str(type(func)))
-        self._deserialize = func if not (func is None) else self.basic_deserialize
+        self._deserialize = (func
+                             if func is not None
+                             else self.basic_deserialize)
+
     @deserialize.deleter
     def deserialize(self):
         self._deserialize = self.basic_deserialize
-#----------------
+
+    # ----------------
     @property
     def tarantool_connection(self):
         """
@@ -333,43 +348,50 @@ class TQueue(object):
         if not hasattr(self, '_conclass'):
             self._conclass = tarantool.Connection
         return self._conclass
+
     @tarantool_connection.setter
     def tarantool_connection(self, cls):
-        if not('call' in dir(cls) and '__init__' in dir(cls)) and not (cls is None):
-            raise TypeError("Connection class must have"
-                            " connect and call methods or be None")
-        self._conclass = cls if not (cls is None) else tarantool.Connection
+        if 'call' not in dir(cls) or '__init__' not in dir(cls):
+            if cls is not None:
+                raise TypeError("Connection class must have"
+                                " connect and call methods or be None")
+        self._conclass = cls if cls is not None else tarantool.Connection
         if hasattr(self, '_tnt'):
             self.__dict__.pop('_tnt')
+
     @tarantool_connection.deleter
     def tarantool_connection(self):
         if hasattr(self, '_conclass'):
             self.__dict__.pop('_conclass')
         if hasattr(self, '_tnt'):
             self.__dict__.pop('_tnt')
-#----------------
+
+    # ----------------
     @property
     def tarantool_lock(self):
         """
-        Locking class: must be locking instance with methods __enter__ and __exit__. If
-        it sets to None or delete - it will use default threading.Lock() instance
-        for locking in the connecting.
+        Locking class: must be locking instance with methods __enter__
+        and __exit__. If it sets to None or delete - it will use default
+        threading.Lock() instance for locking in the connecting.
         """
         if not hasattr(self, '_lockinst'):
             self._lockinst = threading.Lock()
         return self._lockinst
+
     @tarantool_lock.setter
     def tarantool_lock(self, lock):
-        if not('__enter__' in dir(lock) and '__exit__' in dir(lock)) and not (lock is None):
-            raise TypeError("Lock class must have"
-                            " `__enter__` and `__exit__` methods or be None")
-        self._lockinst = lock if not (lock is None) else threading.Lock()
+        if '__enter__' not in dir(lock) or '__exit__' not in dir(lock):
+            if lock is not None:
+                raise TypeError("Lock class must have `__enter__`"
+                                " and `__exit__` methods or be None")
+        self._lockinst = lock if lock is not None else threading.Lock()
+
     @tarantool_lock.deleter
     def tarantool_lock(self):
         if hasattr(self, '_lockinst'):
             self.__dict__.pop('_lockinst')
-#----------------
 
+    # ----------------
     @property
     def tnt(self):
         if not hasattr(self, '_tnt'):
