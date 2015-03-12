@@ -229,7 +229,7 @@ class TQueue(object):
     For more usage, please, look into tests.
     Usage:
 
-        >>> from tntqueue import TQueue
+        >>> from tarantool_queue import TQueue
         >>> queue = TQueue()
         >>> tube1 = queue.create_tube('holy_grail', ttl=100, delay=5)
         # Put task into the queue

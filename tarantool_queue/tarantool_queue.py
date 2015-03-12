@@ -319,7 +319,7 @@ class Queue(object):
     For more usage, please, look into tests.
     Usage:
 
-        >>> from tntqueue import Queue
+        >>> from tarantool_queue import Queue
         >>> queue = Queue()
         >>> tube1 = queue.create_tube('holy_grail', ttl=100, delay=5)
         # Put task into the queue
