@@ -376,7 +376,7 @@ class Queue(object):
         it will use msgpack for serializing.
         """
         if not hasattr(self, '_serialize'):
-            self.serialize = self.basic_serialize
+            self._serialize = self.basic_serialize
         return self._serialize
     @serialize.setter
     def serialize(self, func):
