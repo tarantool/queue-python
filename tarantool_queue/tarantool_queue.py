@@ -135,7 +135,8 @@ class Task(object):
         if not self.raw_data:
             return None
         if not hasattr(self, '_decoded_data'):
-            self._decoded_data = self.queue.tube(self.tube).deserialize(self.raw_data)
+            data = self.queue.tube(self.tube).deserialize(self.raw_data)
+            self._decoded_data = data
         return self._decoded_data
 
     def __str__(self):
@@ -177,16 +178,17 @@ class Tube(object):
     def __init__(self, queue, name, **kwargs):
         self.queue = queue
         self.opt = {
-            'delay' : 0,
-            'ttl'   : 0,
-            'ttr'   : 0,
-            'pri'   : 0,
-            'tube'  : name
-            }
+            'delay': 0,
+            'ttl': 0,
+            'ttr': 0,
+            'pri': 0,
+            'tube': name
+        }
         self.opt.update(kwargs)
         self._serialize = None
         self._deserialize = None
-#----------------
+
+    # ----------------
     @property
     def serialize(self):
         """
@@ -195,13 +197,15 @@ class Tube(object):
         if self._serialize is None:
             return self.queue.serialize
         return self._serialize
+
     @serialize.setter
     def serialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
+                            "or None, but not " + str(type(func)))
         self._serialize = func
-#----------------
+
+    # ----------------
     @property
     def deserialize(self):
         """
@@ -210,20 +214,22 @@ class Tube(object):
         if self._deserialize is None:
             return self.queue.deserialize
         return self._deserialize
+
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
+                            "or None, but not " + str(type(func)))
         self._deserialize = func
-#----------------
+
+    # ----------------
     def update_options(self, **kwargs):
         """
         Update options for current tube (such as ttl, ttr, pri and delay)
         """
         self.opt.update(kwargs)
 
-    def _producer(self, method, data, **kwargs):
+    def _produce(self, method, data, **kwargs):
         """
         Generic enqueue a task. Returns a tuple, representing the new task.
         The list of fields with task data ('...')is optional.
@@ -231,7 +237,8 @@ class Tube(object):
 
         :param data: Data for pushing into queue
         :param urgent: make task urgent (Not necessary, False by default)
-        :param delay: new delay for task (Not necessary, Default of Tube object)
+        :param delay: new delay for task
+                      (Not necessary, Default of Tube object)
         :param ttl: new time to live (Not necessary, Default of Tube object)
         :param ttr: time to release (Not necessary, Default of Tube object)
         :param tube: name of Tube (Not necessary, Default of Tube object)
@@ -244,6 +251,11 @@ class Tube(object):
         :rtype: `Task` instance
         """
         opt = dict(self.opt, **kwargs)
+
+        #method = "queue.put"
+        #if "urgent" in kwargs and kwargs["urgent"]:
+        #    opt["delay"] = 0
+        #    method = "queue.urgent"
 
         the_tuple = self.queue.tnt.call(method, (
             str(self.queue.space),
@@ -259,37 +271,14 @@ class Tube(object):
 
     def put(self, data, **kwargs):
         """
-        Enqueue a unique task. Returns a tuple, representing the new task.
+        Enqueue a task. Returns a tuple, representing the new task.
         The list of fields with task data ('...')is optional.
         If urgent set to True then the task will get the highest priority.
 
         :param data: Data for pushing into queue
         :param urgent: make task urgent (Not necessary, False by default)
-        :param delay: new delay for task (Not necessary, Default of Tube object)
-        :param ttl: new time to live (Not necessary, Default of Tube object)
-        :param ttr: time to release (Not necessary, Default of Tube object)
-        :param tube: name of Tube (Not necessary, Default of Tube object)
-        :param pri: priority (Not necessary, Default of Tube object)
-        :type ttl: int
-        :type delay: int
-        :type ttr: int
-        :type tube: string
-        :type urgent: boolean
-        :rtype: `Task` instance"
-        """
-        return self._producer("queue.put", data, **kwargs)
-
-
-    def put_unique(self, data, **kwargs):
-        """
-        Enqueue a unique task. Returns a tuple, representing the new task or
-        None if task already exists.
-        The list of fields with task data ('...')is optional.
-        If urgent set to True then the task will get the highest priority.
-
-        :param data: Data for pushing into queue
-        :param urgent: make task urgent (Not necessary, False by default)
-        :param delay: new delay for task (Not necessary, Default of Tube object)
+        :param delay: new delay for task
+                      (Not necessary, Default of Tube object)
         :param ttl: new time to live (Not necessary, Default of Tube object)
         :param ttr: time to release (Not necessary, Default of Tube object)
         :param tube: name of Tube (Not necessary, Default of Tube object)
@@ -301,16 +290,39 @@ class Tube(object):
         :type urgent: boolean
         :rtype: `Task` instance
         """
-        return self._producer("queue.put_unique", data, **kwargs)
+        return self._produce("queue.put", data, **kwargs)
+
+    def put_unique(self, data, **kwargs):
+        """
+        Enqueue a task. Returns a tuple, representing the new task or None
+        if task exists.
+        The list of fields with task data ('...')is optional.
+        If urgent set to True then the task will get the highest priority.
+
+        :param data: Data for pushing into queue
+        :param urgent: make task urgent (Not necessary, False by default)
+        :param delay: new delay for task
+                      (Not necessary, Default of Tube object)
+        :param ttl: new time to live (Not necessary, Default of Tube object)
+        :param ttr: time to release (Not necessary, Default of Tube object)
+        :param tube: name of Tube (Not necessary, Default of Tube object)
+        :param pri: priority (Not necessary, Default of Tube object)
+        :type ttl: int
+        :type delay: int
+        :type ttr: int
+        :type tube: string
+        :type urgent: boolean
+        :rtype: `Task` instance
+        """
+        return self._produce("queue.put_unique", data, **kwargs)
 
     def urgent(self, data=None, **kwargs):
         """
         Same as :meth:`Tube.put() <tarantool_queue.Tube.put>` put,
         but set highest priority for this task.
         """
-        kwargs['urgent'] = True
-        kwargs["delay"] = 0
-        return self._producer("queue.urgent", data, **kwargs)
+        kwargs['delay'] = 0
+        return self._produce("queue.urgent", data, **kwargs)
 
     def take(self, timeout=0):
         """
@@ -339,9 +351,11 @@ class Tube(object):
 
     def statistics(self):
         """
-        See :meth:`Queue.statistics() <tarantool_queue.Queue.statistics>` for more information.
+        See :meth:`Queue.statistics() <tarantool_queue.Queue.statistics>`
+        for more information.
         """
         return self.queue.statistics(tube=self.opt['tube'])
+
 
 class Queue(object):
     """
@@ -352,7 +366,7 @@ class Queue(object):
     For more usage, please, look into tests.
     Usage:
 
-        >>> from tntqueue import Queue
+        >>> from tarantool_queue import Queue
         >>> queue = Queue()
         >>> tube1 = queue.create_tube('holy_grail', ttl=100, delay=5)
         # Put task into the queue
@@ -392,7 +406,7 @@ class Queue(object):
     def basic_deserialize(data):
         return msgpack.unpackb(data)
 
-    def __init__(self, host="localhost", port=33013,  space=0, schema=None):
+    def __init__(self, host="localhost", port=33013, space=0, schema=None):
         if not(host and port):
             raise Queue.BadConfigException("host and port params "
                                            "must be not empty")
@@ -411,7 +425,7 @@ class Queue(object):
         self._serialize = self.basic_serialize
         self._deserialize = self.basic_deserialize
 
-#----------------
+    # ----------------
     @property
     def serialize(self):
         """
@@ -419,18 +433,21 @@ class Queue(object):
         it will use msgpack for serializing.
         """
         if not hasattr(self, '_serialize'):
-            self.serialize = self.basic_serialize
+            self._serialize = self.basic_serialize
         return self._serialize
+
     @serialize.setter
     def serialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
-                            "or None, but not "+str(type(func)))
-        self._serialize = func if not (func is None) else self.basic_serialize
+                            "or None, but not " + str(type(func)))
+        self._serialize = func if func is not None else self.basic_serialize
+
     @serialize.deleter
     def serialize(self):
         self._serialize = self.basic_serialize
-#----------------
+
+    # ----------------
     @property
     def deserialize(self):
         """
@@ -440,16 +457,21 @@ class Queue(object):
         if not hasattr(self, '_deserialize'):
             self._deserialize = self.basic_deserialize
         return self._deserialize
+
     @deserialize.setter
     def deserialize(self, func):
         if not (hasattr(func, '__call__') or func is None):
             raise TypeError("func must be Callable "
                             "or None, but not " + str(type(func)))
-        self._deserialize = func if not (func is None) else self.basic_deserialize
+        self._deserialize = (func
+                             if func is not None
+                             else self.basic_deserialize)
+
     @deserialize.deleter
     def deserialize(self):
         self._deserialize = self.basic_deserialize
-#----------------
+
+    # ----------------
     @property
     def tarantool_connection(self):
         """
@@ -460,43 +482,50 @@ class Queue(object):
         if not hasattr(self, '_conclass'):
             self._conclass = tarantool.Connection
         return self._conclass
+
     @tarantool_connection.setter
     def tarantool_connection(self, cls):
-        if not('call' in dir(cls) and '__init__' in dir(cls)) and not (cls is None):
-            raise TypeError("Connection class must have"
-                            " connect and call methods or be None")
-        self._conclass = cls if not (cls is None) else tarantool.Connection
+        if 'call' not in dir(cls) or '__init__' not in dir(cls):
+            if cls is not None:
+                raise TypeError("Connection class must have"
+                                " connect and call methods or be None")
+        self._conclass = cls if cls is not None else tarantool.Connection
         if hasattr(self, '_tnt'):
             self.__dict__.pop('_tnt')
+
     @tarantool_connection.deleter
     def tarantool_connection(self):
         if hasattr(self, '_conclass'):
             self.__dict__.pop('_conclass')
         if hasattr(self, '_tnt'):
             self.__dict__.pop('_tnt')
-#----------------
+
+    # ----------------
     @property
     def tarantool_lock(self):
         """
-        Locking class: must be locking instance with methods __enter__ and __exit__. If
-        it sets to None or delete - it will use default threading.Lock() instance
-        for locking in the connecting.
+        Locking class: must be locking instance with methods __enter__
+        and __exit__. If it sets to None or delete - it will use default
+        threading.Lock() instance for locking in the connecting.
         """
         if not hasattr(self, '_lockinst'):
             self._lockinst = threading.Lock()
         return self._lockinst
+
     @tarantool_lock.setter
     def tarantool_lock(self, lock):
-        if not('__enter__' in dir(lock) and '__exit__' in dir(lock)) and not (lock is None):
-            raise TypeError("Lock class must have"
-                            " `__enter__` and `__exit__` methods or be None")
-        self._lockinst = lock if not (lock is None) else threading.Lock()
+        if '__enter__' not in dir(lock) or '__exit__' not in dir(lock):
+            if lock is not None:
+                raise TypeError("Lock class must have `__enter__`"
+                                " and `__exit__` methods or be None")
+        self._lockinst = lock if lock is not None else threading.Lock()
+
     @tarantool_lock.deleter
     def tarantool_lock(self):
         if hasattr(self, '_lockinst'):
             self.__dict__.pop('_lockinst')
-#----------------
 
+    # ----------------
     @property
     def tnt(self):
         if not hasattr(self, '_tnt'):
@@ -635,12 +664,14 @@ class Queue(object):
         ans = {}
         if stat.rowcount > 0:
             for k, v in dict(zip(stat[0][0::2], stat[0][1::2])).iteritems():
-                k_t = list(re.match(r'space([^.]*)\.(.*)\.([^.]*)', k).groups())
+                k_t = list(
+                    re.match(r'space([^.]*)\.(.*)\.([^.]*)', k).groups()
+                )
                 if int(k_t[0]) != self.space:
                     continue
                 if k_t[1].endswith('.tasks'):
                     k_t = k_t[0:1] + k_t[1].split('.') + k_t[2:3]
-                if not (k_t[1] in ans):
+                if k_t[1] not in ans:
                     ans[k_t[1]] = {'tasks': {}}
                 if len(k_t) == 4:
                     ans[k_t[1]]['tasks'][k_t[-1]] = v
