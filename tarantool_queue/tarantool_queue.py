@@ -252,11 +252,6 @@ class Tube(object):
         """
         opt = dict(self.opt, **kwargs)
 
-        #method = "queue.put"
-        #if "urgent" in kwargs and kwargs["urgent"]:
-        #    opt["delay"] = 0
-        #    method = "queue.urgent"
-
         the_tuple = self.queue.tnt.call(method, (
             str(self.queue.space),
             str(opt["tube"]),
