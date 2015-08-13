@@ -289,25 +289,8 @@ class Tube(object):
 
     def put_unique(self, data, **kwargs):
         """
-        Enqueue a task. Returns a tuple, representing the new task or None
-        if task exists.
-        The list of fields with task data ('...')is optional.
-        If urgent set to True then the task will get the highest priority.
-
-        :param data: Data for pushing into queue
-        :param urgent: make task urgent (Not necessary, False by default)
-        :param delay: new delay for task
-                      (Not necessary, Default of Tube object)
-        :param ttl: new time to live (Not necessary, Default of Tube object)
-        :param ttr: time to release (Not necessary, Default of Tube object)
-        :param tube: name of Tube (Not necessary, Default of Tube object)
-        :param pri: priority (Not necessary, Default of Tube object)
-        :type ttl: int
-        :type delay: int
-        :type ttr: int
-        :type tube: string
-        :type urgent: boolean
-        :rtype: `Task` instance
+        Same as :meth:`Tube.put() <tarantool_queue.Tube.put>` put,
+        but it returns None if task exists
         """
         return self._produce("queue.put_unique", data, **kwargs)
 
@@ -351,6 +334,11 @@ class Tube(object):
         """
         return self.queue.statistics(tube=self.opt['tube'])
 
+    def truncate(self):
+        """
+        Truncate tube
+        """
+        return self.queue.truncate(tube=self.opt['tube'])
 
 class Queue(object):
     """
@@ -608,6 +596,18 @@ class Queue(object):
             args.append(str(count))
         the_tuple = self.tnt.call("queue.kick", tuple(args))
         return the_tuple.return_code == 0
+
+    def truncate(self, tube):
+        """
+        Truncate queue tube, return quantity of deleted tasks
+
+        :param tube: Name of tube
+        :type tube: string
+        :rtype: int
+        """
+        args = (str(self.space), tube)
+        deleted = self.tnt.call("queue.truncate", args)
+        return unpack_long(deleted[0][0])
 
     def statistics(self, tube=None):
         """

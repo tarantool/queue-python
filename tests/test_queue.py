@@ -86,6 +86,29 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         # task is acked - must not send exception
         self.tube.take().ack()
 
+    def test_07_Truncate(self):
+        task1_p = self.tube.put("task#1")
+        task2_p = self.tube.put("task#2")
+        task3_p = self.tube.put("task#3")
+        before_stat = self.tube.statistics()
+        result = self.tube.truncate()
+        after_stat = self.tube.statistics()
+        self.assertEqual(before_stat['tasks']['ready'], '3')
+        self.assertEqual(result, 3)
+        self.assertEqual(after_stat['tasks']['ready'], '0')
+        task1_p = self.tube.put("task#1")
+        task2_p = self.tube.put("task#2")
+        task3_p = self.tube.put("task#3")
+        before_stat = self.tube.statistics()
+        result = self.queue.truncate('tube')
+        after_stat = self.tube.statistics()
+        self.assertEqual(before_stat['tasks']['ready'], '3')
+        self.assertEqual(result, 3)
+        self.assertEqual(after_stat['tasks']['ready'], '0')
+        result1 = self.tube.truncate()
+        result2 = self.tube.truncate()
+        self.assertEqual(result1, result2)
+
 class TestSuite_01_SerializerTest(TestSuite_Basic):
     def test_00_CustomQueueSerializer(self):
         class A:
@@ -129,9 +152,9 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
         task2 = self.tube.take()
         self.assertEqual(task1.data, task2.data)
         task2.ack()
-        self.tube.serialize = None 
+        self.tube.serialize = None
         self.tube.deserialize = None
-        a = [1, 2, 3, "hello"] 
+        a = [1, 2, 3, "hello"]
         task1 = self.tube.put(a)
         task2 = self.tube.take()
         self.assertEqual(task1.data, task2.data)
@@ -201,7 +224,7 @@ class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
         self.queue.tarantool_lock = GoodFake
         del(self.queue.tarantool_lock)
         self.assertTrue(isinstance(self.queue.tarantool_lock, type(threading.Lock())))
-        
+
     def test_01_GoodConnection(self):
         class GoodFake(object):
             def __init__(self):
