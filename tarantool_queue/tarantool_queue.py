@@ -233,10 +233,8 @@ class Tube(object):
         """
         Generic enqueue a task. Returns a tuple, representing the new task.
         The list of fields with task data ('...')is optional.
-        If urgent set to True then the task will get the highest priority.
 
         :param data: Data for pushing into queue
-        :param urgent: make task urgent (Not necessary, False by default)
         :param delay: new delay for task
                       (Not necessary, Default of Tube object)
         :param ttl: new time to live (Not necessary, Default of Tube object)
@@ -247,7 +245,6 @@ class Tube(object):
         :type delay: int
         :type ttr: int
         :type tube: string
-        :type urgent: boolean
         :rtype: `Task` instance
         """
         opt = dict(self.opt, **kwargs)
@@ -268,10 +265,8 @@ class Tube(object):
         """
         Enqueue a task. Returns a tuple, representing the new task.
         The list of fields with task data ('...')is optional.
-        If urgent set to True then the task will get the highest priority.
 
         :param data: Data for pushing into queue
-        :param urgent: make task urgent (Not necessary, False by default)
         :param delay: new delay for task
                       (Not necessary, Default of Tube object)
         :param ttl: new time to live (Not necessary, Default of Tube object)
@@ -282,9 +277,14 @@ class Tube(object):
         :type delay: int
         :type ttr: int
         :type tube: string
-        :type urgent: boolean
         :rtype: `Task` instance
         """
+
+        method = "queue.put"
+        if "urgent" in kwargs and kwargs["urgent"]:
+            opt["delay"] = 0
+            method = "queue.urgent"
+
         return self._produce("queue.put", data, **kwargs)
 
     def put_unique(self, data, **kwargs):
