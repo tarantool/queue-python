@@ -279,12 +279,6 @@ class Tube(object):
         :type tube: string
         :rtype: `Task` instance
         """
-
-        method = "queue.put"
-        if "urgent" in kwargs and kwargs["urgent"]:
-            opt["delay"] = 0
-            method = "queue.urgent"
-
         return self._produce("queue.put", data, **kwargs)
 
     def put_unique(self, data, **kwargs):
