@@ -262,3 +262,26 @@ class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
         self.queue.tarantool_lock = threading.Lock()
         self.queue.tarantool_connection = tarantool.Connection
         self.assertIsNotNone(self.queue.statistics())
+
+
+class TestSuite_04_StatisticsWithDotInTubeName(TestSuite_Basic):
+    @classmethod
+    def setUpClass(cls):
+        cls.queue = Queue("127.0.0.1", 33013, 0)
+        cls.tube = cls.queue.tube("tube.with.dot")
+        cls.tube.put("task#1")
+        cls.tube.put("task#2")
+        cls.tube.put("task#3")
+
+    def test_01_StatisticsOnTubeNotFail(self):
+        stat = self.tube.statistics()
+        self.assertTrue(stat['put'])
+        self.assertTrue(stat['tasks'])
+        self.assertTrue(stat['tasks']['total'])
+
+    def test_02_StatisticsOnQueueNotFail(self):
+        stat = self.queue.statistics()
+        self.assertTrue("tube.with.dot" in stat)
+        self.assertTrue(stat['tube.with.dot']['put'])
+        self.assertTrue(stat['tube.with.dot']['tasks'])
+        self.assertTrue(stat['tube.with.dot']['tasks']['total'])

@@ -340,6 +340,7 @@ class Tube(object):
         """
         return self.queue.truncate(tube=self.opt['tube'])
 
+
 class Queue(object):
     """
     Tarantool queue wrapper. Surely pinned to space. May create tubes.
@@ -658,14 +659,14 @@ class Queue(object):
         stat = self.tnt.call("queue.statistics", args)
         ans = {}
         if stat.rowcount > 0:
-            for k, v in dict(zip(stat[0][0::2], stat[0][1::2])).iteritems():
+            for k, v in zip(stat[0][0::2], stat[0][1::2]):
                 k_t = list(
                     re.match(r'space([^.]*)\.(.*)\.([^.]*)', k).groups()
                 )
                 if int(k_t[0]) != self.space:
                     continue
                 if k_t[1].endswith('.tasks'):
-                    k_t = k_t[0:1] + k_t[1].split('.') + k_t[2:3]
+                    k_t = k_t[0:1] + k_t[1].rsplit('.', 1) + k_t[2:3]
                 if k_t[1] not in ans:
                     ans[k_t[1]] = {'tasks': {}}
                 if len(k_t) == 4:
