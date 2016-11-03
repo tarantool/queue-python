@@ -1,11 +1,11 @@
 import sys
-import copy
 import msgpack
 import unittest
 import threading
 
 from tarantool_queue import Queue
 import tarantool
+
 
 class TestSuite_Basic(unittest.TestCase):
     @classmethod
@@ -22,6 +22,7 @@ class TestSuite_Basic(unittest.TestCase):
                 task.ack()
                 task = tube.take(1)
         print(" ok")
+
 
 class TestSuite_00_ConnectionTest(TestSuite_Basic):
     def test_00_ConProp(self):
@@ -65,7 +66,9 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         self.assertEqual(task1_p.data, task3.data)
         self.assertEqual(task2_p.data, task2.data)
         self.assertEqual(task3_p.data, task1.data)
-        task3.release();task1.release();task2.release()
+        task3.release()
+        task1.release()
+        task2.release()
         task1 = self.tube.take()
         task2 = self.tube.take()
         task3 = self.tube.take()
@@ -73,7 +76,9 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         self.assertEqual(task1_p.data, task3.data)
         self.assertEqual(task2_p.data, task2.data)
         self.assertEqual(task3_p.data, task1.data)
-        task1.ack();task2.ack();task3.ack()
+        task1.ack()
+        task2.ack()
+        task3.ack()
 
     def test_06_Destructor(self):
         task = self.tube.put("stupid task")
@@ -87,18 +92,18 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         self.tube.take().ack()
 
     def test_07_Truncate(self):
-        task1_p = self.tube.put("task#1")
-        task2_p = self.tube.put("task#2")
-        task3_p = self.tube.put("task#3")
+        self.tube.put("task#1")
+        self.tube.put("task#2")
+        self.tube.put("task#3")
         before_stat = self.tube.statistics()
         result = self.tube.truncate()
         after_stat = self.tube.statistics()
         self.assertEqual(before_stat['tasks']['ready'], '3')
         self.assertEqual(result, 3)
         self.assertEqual(after_stat['tasks']['ready'], '0')
-        task1_p = self.tube.put("task#1")
-        task2_p = self.tube.put("task#2")
-        task3_p = self.tube.put("task#3")
+        self.tube.put("task#1")
+        self.tube.put("task#2")
+        self.tube.put("task#3")
         before_stat = self.tube.statistics()
         result = self.queue.truncate('tube')
         after_stat = self.tube.statistics()
@@ -109,16 +114,18 @@ class TestSuite_00_ConnectionTest(TestSuite_Basic):
         result2 = self.tube.truncate()
         self.assertEqual(result1, result2)
 
+
 class TestSuite_01_SerializerTest(TestSuite_Basic):
     def test_00_CustomQueueSerializer(self):
         class A:
-            def __init__(self, a = 3, b = 4):
+            def __init__(self, a=3, b=4):
                 self.a = a
                 self.b = b
+
             def __eq__(self, other):
-                return (isinstance(self, type(other))
-                        and self.a == other.a
-                        and self.b == other.b)
+                return (isinstance(self, type(other)) and
+                        self.a == other.a and
+                        self.b == other.b)
 
         self.queue.serialize = (lambda x: msgpack.packb([x.a, x.b]))
         self.queue.deserialize = (lambda x: A(*msgpack.unpackb(x)))
@@ -137,13 +144,14 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
 
     def test_01_CustomTubeQueueSerializers(self):
         class A:
-            def __init__(self, a = 3, b = 4):
+            def __init__(self, a=3, b=4):
                 self.a = a
                 self.b = b
+
             def __eq__(self, other):
-                return (isinstance(self, type(other))
-                        and self.a == other.a
-                        and self.b == other.b)
+                return (isinstance(self, type(other)) and
+                        self.a == other.a and
+                        self.b == other.b)
 
         self.tube.serialize = (lambda x: msgpack.packb([x.a, x.b]))
         self.tube.deserialize = (lambda x: A(*msgpack.unpackb(x)))
@@ -163,24 +171,26 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
 
     def test_02_CustomMixedSerializers(self):
         class A:
-            def __init__(self, a = 3, b = 4):
+            def __init__(self, a=3, b=4):
                 self.a = a
                 self.b = b
+
             def __eq__(self, other):
-                return (isinstance(self, type(other))
-                        and self.a == other.a
-                        and self.b == other.b)
+                return (isinstance(self, type(other)) and
+                        self.a == other.a and
+                        self.b == other.b)
 
         class B:
-            def __init__(self, a = 5, b = 6, c = 7):
+            def __init__(self, a=5, b=6, c=7):
                 self.a = a
                 self.b = b
                 self.c = c
+
             def __eq__(self, other):
-                return (isinstance(self, type(other))
-                        and self.a == other.a
-                        and self.b == other.b
-                        and self.c == other.c)
+                return (isinstance(self, type(other)) and
+                        self.a == other.a and
+                        self.b == other.b and
+                        self.c == other.c)
 
         self.queue.serialize = (lambda x: msgpack.packb([x.a, x.b]))
         self.queue.deserialize = (lambda x: A(*msgpack.unpackb(x)))
@@ -209,11 +219,13 @@ class TestSuite_01_SerializerTest(TestSuite_Basic):
         self.assertEqual(a, task2.data)
         task2.ack()
 
+
 class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
     def test_00_GoodLock(self):
         class GoodFake(object):
             def __enter__(self):
                 pass
+
             def __exit__(self):
                 pass
 
@@ -229,14 +241,15 @@ class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
         class GoodFake(object):
             def __init__(self):
                 pass
+
             def call(self):
                 pass
 
         self.queue.tarantool_connection = tarantool.Connection
-        self.queue.statistics() # creating basic _tnt
-        self.assertTrue(hasattr(self.queue, '_tnt')) # check that it exists
-        self.queue.tarantool_connection = None # delete _tnt
-        self.assertFalse(hasattr(self.queue, '_tnt')) # check that it doesn't exists
+        self.queue.statistics()  # creating basic _tnt
+        self.assertTrue(hasattr(self.queue, '_tnt'))  # check that it exists
+        self.queue.tarantool_connection = None  # delete _tnt
+        self.assertFalse(hasattr(self.queue, '_tnt'))  # check that it doesn't exists
         self.assertEqual(self.queue.tarantool_connection, tarantool.Connection)
         self.queue.tarantool_connection = GoodFake
         del(self.queue.tarantool_connection)
@@ -262,3 +275,26 @@ class TestSuite_03_CustomLockAndConnection(TestSuite_Basic):
         self.queue.tarantool_lock = threading.Lock()
         self.queue.tarantool_connection = tarantool.Connection
         self.assertIsNotNone(self.queue.statistics())
+
+
+class TestSuite_04_StatisticsWithDotInTubeName(TestSuite_Basic):
+    @classmethod
+    def setUpClass(cls):
+        cls.queue = Queue("127.0.0.1", 33013, 0)
+        cls.tube = cls.queue.tube("tube.with.dot")
+        cls.tube.put("task#1")
+        cls.tube.put("task#2")
+        cls.tube.put("task#3")
+
+    def test_01_StatisticsOnTubeNotFail(self):
+        stat = self.tube.statistics()
+        self.assertTrue(stat['put'])
+        self.assertTrue(stat['tasks'])
+        self.assertTrue(stat['tasks']['total'])
+
+    def test_02_StatisticsOnQueueNotFail(self):
+        stat = self.queue.statistics()
+        self.assertTrue("tube.with.dot" in stat)
+        self.assertTrue(stat['tube.with.dot']['put'])
+        self.assertTrue(stat['tube.with.dot']['tasks'])
+        self.assertTrue(stat['tube.with.dot']['tasks']['total'])
